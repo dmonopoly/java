@@ -56,23 +56,28 @@ class Bank {
       test();
    }
 
-   // options: make this method synchronized and remove any sleep() inside, OR
-   // put synchronized around the specific region
-   public void transfer(int from, int to, int amount) {  
-      // while (accounts[from] < amount) {  //if the account doesn't have money, sleep a bit
-      //    try {  
-      //       Thread.sleep(5);
-      //    } catch(InterruptedException e) {
-      //    }
-      // }
-
-      // critical region
-      synchronized(this) {
-         accounts[from] -= amount;
-         accounts[to] += amount;
-         ntransacts++;
-         if (ntransacts % 5000 == 0) test();
+   // Solution: this whole method is a critical region.
+   // We want the initial while loop to ensure we transfer money from accounts
+   // that have enough money.
+   // Change sleep() to wait() so we can wake up the thread with notify()
+   public synchronized void transfer(int from, int to, int amount) {  
+      while (accounts[from] < amount) {  // if the account doesn't have money, wait
+         try {  
+            // Thread.sleep(5);
+            wait(5);
+         } catch(InterruptedException e) {
+            System.out.println("Exception: "+e.getMessage());
+         }
       }
+      accounts[from] -= amount;
+      accounts[to] += amount;
+      ntransacts++;
+      if (ntransacts % 5000 == 0) test();
+
+      notify();
+         // Tell other threads that got stopped in the while loop to try again
+         // since I (the running thread) am done with this critical region
+         // and the account values have changed since.
    }
 
    // Just a method to print out transactions
